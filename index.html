@@ -315,7 +315,7 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
         <button class="btn btn-ghost btn-sm" id="xp-autorange">Auto detect</button>
       </div>
       <div class="row">
-        <div class="field"><label for="xp-base">Start Hz</label><input type="number" id="xp-base" value="4000" step="0.01" min="200"></div>
+        <div class="field"><label for="xp-base">Start Hz</label><input type="number" id="xp-base" value="2000" step="0.01" min="200"></div>
         <div class="field"><label for="xp-step">Separation Hz</label><input type="number" id="xp-step" value="107" step="0.01" min="10"></div>
         <div class="field"><label for="xp-banks">Banks/zone</label>
           <select id="xp-banks"><option value="8">8</option><option value="6">6</option><option value="4">4</option><option value="2">2</option></select></div>
@@ -324,9 +324,9 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
       </div>
       <div class="row">
         <div class="field"><label for="xp-zones">Zones</label><input type="number" id="xp-zones" value="4" step="1" min="1" max="8"></div>
-        <div class="field"><label for="xp-buffer">Buffer lanes</label><input type="number" id="xp-buffer" value="2" step="1" min="2" max="8"></div>
+        <div class="field"><label for="xp-buffer">Buffer lanes</label><input type="number" id="xp-buffer" value="0" step="1" min="0" max="8"></div>
         <div class="field"><label for="xp-calscale">Cal level scale</label><input type="number" id="xp-calscale" value="0.25" step="0.05" min="0.05" max="1"></div>
-        <span class="status" id="xp-lattice">4 zones &middot; 4000&ndash;7959 Hz</span>
+        <span class="status" id="xp-lattice">4 zones &middot; 2000&ndash;5625 Hz</span>
       </div>
       <div class="row">
         <button class="btn btn-pulse" id="xp-start">Enable sound + mic</button>
@@ -383,6 +383,63 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
         <div class="field"><label for="xp-caplabel">Label</label><input type="text" id="xp-caplabel" style="width:140px;" placeholder="optional"></div>
         <button class="btn btn-ghost btn-sm" id="xp-capcopy" disabled>Copy again</button>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>System Calibration</h2>
+      <div class="sub"><b>Start System Calibration</b> fires the editable pattern below on <b>every active
+      zone at once</b> (peak-safe via <b>Cal level scale</b>), so you can watch all zones together, then
+      <b>Detect Barcode</b> reads it back per zone.</div>
+      <div class="row">
+        <div class="field" style="flex:1 1 100%; max-width:100%;">
+          <label for="cal-pattern">Calibration pattern</label>
+          <textarea id="cal-pattern" rows="17" spellcheck="false" wrap="off" style="width:100%; max-width:100%; box-sizing:border-box; font-family:ui-monospace,monospace; font-size:13px; line-height:1.5; padding:8px 10px; border:1px solid var(--line-strong); border-radius:8px; background:var(--paper); color:var(--ink); resize:vertical;">noisecancel:1000
+tone:11100000
+tone:00011100
+tone:00000111
+
+tone:11111111
+
+tone:11110000
+
+pulse:10000000
+pulse:01000000
+pulse:00100000
+
+tone:00001111
+
+tone:11111111
+
+tone:00000111
+tone:00011100
+tone:11100000</textarea>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn btn-primary" id="cal-start" disabled>Start System Calibration</button>
+        <button class="btn btn-pulse" id="cal-barcode" disabled>Detect Barcode</button>
+        <span class="status" id="cal-status">idle</span>
+      </div>
+      <details class="reader-help" style="margin-top:8px;">
+        <summary style="cursor:pointer; font-size:13px; color:var(--pulse-deep); font-weight:600;">Start System Calibration &mdash; pattern syntax</summary>
+        <div class="status small" style="margin-top:6px; line-height:1.7;">
+          One line = one step, fired on the polling grid on <b>every active zone at once</b>:<br>
+          <code>tone:MASK</code> &mdash; an 8-bit bank mask (b1&rarr;b8 as drawn, <code>1</code> = fire) held <b>sustained for one whole poll</b>.<br>
+          <code>pulse:MASK</code> &mdash; the mask fired as a short <b>pulse</b> (the <b>Pulse ms</b> set up top).<br>
+          <code>noisecancel:MS</code> &mdash; run <b>noise cancellation</b> for MS milliseconds (e.g. <code>noisecancel:1000</code>).<br>
+          <b>blank line</b> &mdash; one poll of <b>silence</b>.<br>
+          All zones are scaled by <b>Cal level scale</b> so the simultaneous passes don't clip. Edit freely to shorten or reshape the pass.
+        </div>
+      </details>
+      <details class="reader-help" style="margin-top:6px;">
+        <summary style="cursor:pointer; font-size:13px; color:var(--pulse-deep); font-weight:600;">Detect Barcode</summary>
+        <div class="status small" style="margin-top:6px; line-height:1.7;">
+          Runs the per-zone <b>Barcode Reader</b> scan on the <b>paused</b> snapshot: <b>Pause</b> the stream,
+          set the <b>Pattern</b> and sensitivity gates in the Barcode Reader card below, then <b>Detect Barcode</b>
+          reads that mask back in <b>each zone independently</b> with High/Med/Low confidence. (Same action as the
+          Reader's &ldquo;Scan frozen 60&nbsp;s&rdquo;; results and overlays appear there.)
+        </div>
+      </details>
     </div>
 
     <div class="card">
@@ -481,42 +538,6 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
       <div id="dt-list"></div>
     </div>
 
-    <div class="card">
-      <h2>System Calibration</h2>
-      <div class="sub">One pass of swept bookends, staircases, and silences &mdash; 37 polls, 7.4 s at
-      200 ms polling. <b>Start</b> fires the pass on <b>every active zone at once</b> (synced to one
-      slot, each scaled by the peak-safe <b>Cal level scale</b> so the simultaneous passes don't clip)
-      so you can watch how all zones do together on the stream. The loud noise pre-roll is off for now
-      &mdash; pulses only; use <b>Calibrate levels</b> first for a well-scaled view. <b>Detect
-      Calibration</b> still reads <b>zone 1</b> only. It scans the rolling log with the fill grid:
-      it measures the room's levels, walks acceptance from 1.00 down in 0.01 steps (floor 0.25,
-      trust line 0.50) to find the TOP (both bookends, no decoys) and the BOTTOM (the decoys bite
-      too), fans seven precision presets across that bracket, self-primes generic fingerprints,
-      and arms. Full report in the console (F12).</div>
-      <div class="row">
-        <button class="btn btn-primary" id="cal-start" disabled>Start System Calibration</button>
-        <button class="btn btn-pulse" id="cal-detect" disabled>Detect Calibration</button>
-        <div class="field"><label for="cal-level">Detection level</label>
-          <select id="cal-level" disabled><option value="">&mdash;</option></select></div>
-        <span class="status" id="cal-status">idle</span>
-      </div>
-      <div class="row">
-        <button class="btn btn-ghost" id="cal-simple" disabled>Simple Detection</button>
-        <span class="status small">Primitive proof: the tine sieve walks the last 10 s of the log
-        and reports every sustained all-8 bar it finds (details in console).</span>
-      </div>
-      <div class="row">
-        <button class="btn btn-ghost" id="cal-barcode" disabled>Detect (barcode)</button>
-        <span class="status" id="cal-barcode-status">idle</span>
-      </div>
-      <div class="row">
-        <span class="status small">Fingerprint-free ZNCC matched-filter: reads the CAL choreography as a
-        template sequence on zone&nbsp;1, recovers the polling <b>phase</b>, <b>verifies the cadence</b>,
-        measures the per-bank <b>weakness</b> for this setup, and re-anchors the grid. Weakness (bank
-        1&rarr;8 relative strength):</span>
-        <span class="status" id="cal-weakness">&mdash;</span>
-      </div>
-    </div>
 
     <div class="card">
       <h2>Bank Calibrations</h2>
@@ -940,8 +961,13 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
 
   var ZONE_SIZES = { 2: true, 4: true, 6: true, 8: true };
 
-  function zoneFloor(z) { return z.freqs[0] - z.tolerance - z.step; }          // guard band low
-  function zoneCeiling(z) { return z.freqs[z.bits - 1] + z.tolerance + z.step; } // guard band high
+  // Guard band = just the snap tolerance beyond the outer bank centers (no extra
+  // step-wide wing). This lets zones pack CONTIGUOUSLY - zone k+1's first bank one
+  // step past zone k's last bank (bufferLanes 0) - so a barcode reads as one
+  // continuous comb across zones with no wide inter-zone gap. tolerance (step/4)
+  // still keeps a hit from snapping across the boundary into the wrong zone.
+  function zoneFloor(z) { return z.freqs[0] - z.tolerance; }          // guard band low
+  function zoneCeiling(z) { return z.freqs[z.bits - 1] + z.tolerance; } // guard band high
 
   function attachZones(net, state) {
     net.zones = {
@@ -1480,24 +1506,6 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
       binHi: Math.ceil(zone.bandHi / binHz),
       count: Math.ceil(zone.bandHi / binHz) - Math.max(0, Math.floor(zone.bandLo / binHz)) + 1
     };
-  }
-
-  // Per-GAP energy derived from the wide bins: the loudest bin around each
-  // inter-bank midpoint (freqs[i] + step/2). The comb's dark lanes, measured -
-  // calibration's decoys light them on purpose; broadband noise lights them
-  // by nature; our bars never do.
-  function deriveGapEnergies(zone, bins) {
-    var g = zone.bins;
-    var energies = [];
-    for (var i = 0; i < zone.bits - 1; i++) {
-      var mid = zone.freqs[i] + zone.step / 2;
-      var lo = Math.max(0, Math.floor((mid - zone.step / 4) / g.binHz) - g.binLo);
-      var hi = Math.min(g.count - 1, Math.ceil((mid + zone.step / 4) / g.binHz) - g.binLo);
-      var best = 0;
-      for (var b = lo; b <= hi; b++) if (bins[b] > best) best = bins[b];
-      energies.push(best);
-    }
-    return energies;
   }
 
   // Per-hit-point energy DERIVED from the wide bins: the loudest bin inside
@@ -2814,6 +2822,68 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
     return { name: script.name, polls: polls, emissions: emissions, cells: cells, bars: bars, stairs: stairs };
   }
 
+  // --- Editable calibration pattern (the "Start System Calibration" textbox) ---
+  // A tiny line-based DSL so the calibration choreography is fully editable:
+  //   tone:MASK        an 8-bit bank mask held SUSTAINED for one whole poll
+  //   pulse:MASK       the mask fired as a short pulse (the zone's pulse ms)
+  //   noisecancel:MS   run noise cancellation for MS milliseconds (real-time)
+  //   <blank line>     one poll of silence
+  // MASK is left->right as drawn (b1..b8), 1 = fire this bank. Pure: parses text
+  // into a step list + line-numbered errors; the lab schedules the steps.
+  function parseCalPattern(text, bits) {
+    bits = bits || 8;
+    var lines = String(text == null ? "" : text).split(/\r?\n/);
+    var steps = [], errors = [];
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (line === "") { steps.push({ kind: "silence" }); continue; }
+      var ci = line.indexOf(":");
+      var tag = (ci >= 0 ? line.slice(0, ci) : line).trim().toLowerCase();
+      var arg = (ci >= 0 ? line.slice(ci + 1) : "").trim();
+      if (tag === "tone" || tag === "pulse") {
+        if (!/^[01]+$/.test(arg)) { errors.push({ line: i + 1, msg: tag + ": needs a mask of 0s and 1s" }); continue; }
+        if (arg.length !== bits) { errors.push({ line: i + 1, msg: tag + ": mask must be " + bits + " bits, got " + arg.length }); continue; }
+        steps.push({ kind: tag, mask: arg });
+      } else if (tag === "noisecancel" || tag === "noise") {
+        var ms = Math.round(+arg);
+        if (!(ms > 0)) { errors.push({ line: i + 1, msg: "noisecancel: needs a positive ms (e.g. noisecancel:1000)" }); continue; }
+        steps.push({ kind: "noise", ms: ms });
+      } else {
+        errors.push({ line: i + 1, msg: "unknown line '" + line + "' (use tone:, pulse:, noisecancel:, or a blank line)" });
+      }
+    }
+    return { steps: steps, errors: errors };
+  }
+
+  function reverseBits(s) { return s.split("").reverse().join(""); }
+
+  // Plan a run of tone/pulse/silence steps into per-slot emissions (PURE - no
+  // ctx). Each step is one poll. `fireBits` is the mask REVERSED for playChord:
+  // the reader reads mask char c against freqs[c] (ascending), but playChord's
+  // rightmost char is freqs[0], so reversing makes an emitted mask read back as
+  // itself. Noise steps must be handled by the caller (real-time), not here.
+  function planCustom(zone, steps, options) {
+    options = options || {};
+    var tonePulseMs = zone.pollingMs;                                              // tone = full-poll sustain
+    var pulsePulseMs = options.pulseMs === undefined ? zone.pulseMs : options.pulseMs;
+    var emissions = [];
+    for (var i = 0; i < steps.length; i++) {
+      var s = steps[i];
+      if (s.kind === "silence") { emissions.push({ slot: i, kind: "silence" }); continue; }
+      if (s.kind !== "tone" && s.kind !== "pulse") {
+        fail("E09", "planCustom got a '" + s.kind + "' step; split noise steps out first");
+      }
+      if (typeof s.mask !== "string" || s.mask.length !== zone.bits || /[^01]/.test(s.mask)) {
+        fail("E09", s.kind + " mask must be a " + zone.bits + "-bit string of 0s and 1s");
+      }
+      var lit = 0;
+      for (var c = 0; c < s.mask.length; c++) if (s.mask.charAt(c) === "1") lit++;
+      emissions.push({ slot: i, kind: s.kind, mask: s.mask, fireBits: reverseBits(s.mask), lit: lit,
+                       pulseMs: (s.kind === "tone" ? tonePulseMs : pulsePulseMs) });
+    }
+    return { polls: steps.length, tonePulseMs: tonePulseMs, pulsePulseMs: pulsePulseMs, emissions: emissions };
+  }
+
   // The calibration bar: a CONTINUOUS tone on a bank RANGE held for durSec,
   // same soft envelope and constant-total-power rule as a chord (each tone
   // gets level-scaled master / count) - but sustained across whole polls
@@ -2919,169 +2989,6 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
     src.stop(at + durSec + 0.01);
   }
 
-  // --- The fill grid ---------------------------------------------------------------
-  //
-  // Detection as an IMAGE CHECK - the way the eye judges the stream: a
-  // subdivided column grid, three polls deep. Per frame, per column (banks
-  // AND the inter-bank lanes), a cell is either FILLED (energy definitely
-  // above the mid-range of that column's measured levels) or it is not -
-  // binary, so dim-gray leakage counts as NOT filled. A 3-poll window slides
-  // across the whole log (running sums make it cheap) and at every offset
-  // reads the bank columns' fill fractions ("mostly green?") and the lane
-  // columns' fill fraction ("mostly blank?"):
-  //
-  //   confidence = bankFill x (1 - laneFill), classified all / lowhalf /
-  //   highhalf by per-half fills (a half-bar's cold half must be UNfilled).
-  //
-  // No run extraction, so fragmentation is impossible by construction - a
-  // solid bar is a clean local peak in fill score at its true position, and
-  // non-maximum suppression picks the peaks. Duration fit is implicit: a
-  // pulse-length blip simply dilutes the fill. Never a single FFT step -
-  // always the whole block, integrated. The decoys (hiss hovering around the
-  // lane threshold) land as partial lane fill: the measurable near-miss.
-  //
-  // Pure: samples = [{ t, e: bankEnergies, g: laneEnergies }] time-ordered.
-  function calFillBlocks(samples, slotSec, opts) {
-    var n = samples.length;
-    if (!n) return [];
-    var points = opts.bankThresholds.length;
-    var lanes = opts.laneThresholds.length;
-    var mid = Math.ceil(points / 2);
-    var polls = opts.polls === undefined ? 3 : opts.polls;
-    var hotMin = opts.hotMin === undefined ? 0.6 : opts.hotMin;
-    var minScore = opts.minScore === undefined ? 0.15 : opts.minScore;
-    var span = polls * slotSec;
-    var f, i, j;
-
-    // Running sums: binary fills per column, plus lit-energy for level readout.
-    var bankPre = new Int32Array((n + 1) * points);
-    var lanePre = new Int32Array((n + 1) * lanes);
-    var litEnergyPre = new Float64Array(n + 1);
-    var litAnyPre = new Int32Array(n + 1);
-    for (f = 0; f < n; f++) {
-      var e = samples[f].e, g = samples[f].g;
-      var litSum = 0, litN = 0;
-      for (i = 0; i < points; i++) {
-        var on = e[i] >= opts.bankThresholds[i] ? 1 : 0;
-        bankPre[(f + 1) * points + i] = bankPre[f * points + i] + on;
-        if (on) { litSum += e[i]; litN++; }
-      }
-      for (j = 0; j < lanes; j++) {
-        lanePre[(f + 1) * lanes + j] = lanePre[f * lanes + j] + (g[j] >= opts.laneThresholds[j] ? 1 : 0);
-      }
-      litEnergyPre[f + 1] = litEnergyPre[f] + (litN ? litSum / litN : 0);
-      litAnyPre[f + 1] = litAnyPre[f] + (litN ? 1 : 0);
-    }
-
-    // Score every window start; the last usable start still fits a full span.
-    var lastT = samples[n - 1].t;
-    var scores = new Float64Array(n);
-    var kinds = [], info = [];
-    var end = 0;
-    for (var s = 0; s < n; s++) {
-      var tEnd = samples[s].t + span;
-      if (end < s + 1) end = s + 1;
-      while (end < n && samples[end].t < tEnd - 1e-9) end++;
-      var frames = end - s;
-      if (frames < 3 || tEnd > lastT + 0.05) { // window not covered by the log
-        scores[s] = -1; kinds.push(null); info.push(null);
-        continue;
-      }
-      var lowFill = 0, highFill = 0;
-      for (i = 0; i < points; i++) {
-        var fill = (bankPre[end * points + i] - bankPre[s * points + i]) / frames;
-        if (i < mid) lowFill += fill / mid; else highFill += fill / (points - mid);
-      }
-      var laneFill = 0;
-      for (j = 0; j < lanes; j++) {
-        laneFill += (lanePre[end * lanes + j] - lanePre[s * lanes + j]) / frames / lanes;
-      }
-      var kind, conf;
-      if (lowFill >= hotMin && highFill >= hotMin) { kind = "all"; conf = (lowFill + highFill) / 2; }
-      else if (lowFill >= hotMin) { kind = "lowhalf"; conf = lowFill * (1 - highFill); }
-      else if (highFill >= hotMin) { kind = "highhalf"; conf = highFill * (1 - lowFill); }
-      else { kind = "none"; conf = Math.max(lowFill, highFill); }
-      scores[s] = conf * (1 - laneFill);
-      kinds.push(kind);
-      var litFrames = litAnyPre[end] - litAnyPre[s];
-      info.push({
-        lowFill: lowFill, highFill: highFill, laneFill: laneFill,
-        level: litFrames ? (litEnergyPre[end] - litEnergyPre[s]) / litFrames : 0
-      });
-    }
-
-    // Non-maximum suppression: a block is a window whose score tops every
-    // neighbor within one poll (earlier ties win, so a plateau's START - the
-    // bar's true top edge, the phase - is the block).
-    var blocks = [];
-    for (var c = 0; c < n; c++) {
-      if (scores[c] < minScore) continue;
-      var isPeak = true;
-      for (var l = c - 1; l >= 0 && samples[c].t - samples[l].t <= slotSec + 1e-9; l--) {
-        if (scores[l] >= scores[c]) { isPeak = false; break; }
-      }
-      if (!isPeak) continue;
-      for (var r = c + 1; r < n && samples[r].t - samples[c].t <= slotSec + 1e-9; r++) {
-        if (scores[r] > scores[c]) { isPeak = false; break; }
-      }
-      if (!isPeak) continue;
-      var inf = info[c];
-      blocks.push({
-        tStart: samples[c].t, tEnd: samples[c].t + span, polls: polls,
-        kind: kinds[c],
-        lowFill: inf.lowFill, highFill: inf.highFill, laneFill: inf.laneFill,
-        level: inf.level, confidence: scores[c]
-      });
-    }
-    return blocks;
-  }
-
-  // --- The log scan --------------------------------------------------------------
-  //
-  // Measure the room, then read the log once. Per-bank hot/floor levels come
-  // from percentiles of the log's own history (the same idea the display's
-  // "Calibrate levels" uses); a bank cell's fill threshold sits halfway up
-  // that measured contrast, a lane's threshold is the mean of its two
-  // neighbors' - so "filled" always means "definitely above the mid range"
-  // for THIS room, THIS distance. Blocks come out of the sliding fill grid,
-  // computed ONCE; the walk-down then only filters them by confidence.
-  function calScanLog(state, zone, options) {
-    var frames = state.logFrames[zone.id] ? state.logFrames[zone.id].frames : [];
-    var i, f;
-    var bankSeries = [];
-    for (i = 0; i < zone.bits; i++) bankSeries.push([]);
-    var samples = [];
-    for (f = 0; f < frames.length; f++) {
-      var e = deriveEnergies(zone, frames[f].bins);
-      var gp = deriveGapEnergies(zone, frames[f].bins);
-      samples.push({ t: frames[f].t, e: e, g: gp });
-      for (i = 0; i < zone.bits; i++) bankSeries[i].push(e[i]);
-    }
-    var bankThresholds = [], hot = [], floor = [];
-    for (i = 0; i < zone.bits; i++) {
-      var sorted = bankSeries[i].slice().sort(function (a, b) { return a - b; });
-      var lo = sorted.length ? sorted[Math.floor(sorted.length * 0.20)] : 0;
-      var hi = sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.98))] : 0;
-      floor.push(lo);
-      hot.push(hi);
-      // Halfway up the measured contrast - with a minimum rise so a bank with
-      // no signal history cannot trigger on its own wiggle.
-      bankThresholds.push(lo + Math.max(12, (hi - lo) * 0.5));
-    }
-    var laneThresholds = [];
-    for (i = 0; i < zone.bits - 1; i++) {
-      laneThresholds.push((bankThresholds[i] + bankThresholds[i + 1]) / 2);
-    }
-    var blocks = calFillBlocks(samples, zone.slotSec, {
-      bankThresholds: bankThresholds,
-      laneThresholds: laneThresholds,
-      hotMin: options && options.hotMin,
-      minScore: options && options.minScore
-    });
-    return { blocks: blocks, bankThresholds: bankThresholds, laneThresholds: laneThresholds,
-             hot: hot, floor: floor };
-  }
-
   // --- Simple Detection: the tine sieve -------------------------------------------
   //
   // The primitive at its simplest, provable form. The band is a row of "tines":
@@ -3116,78 +3023,6 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
       else hollows.push(lists[m]);
     }
     return { banks: banks, hollows: hollows };
-  }
-
-  // Occupancy of one column over a window: what fraction of (its bins x the
-  // window's frames) are "hits" (energy above the threshold). The 2D fill the
-  // eye reads - not one max bin per frame, so a leakage shoulder lighting an
-  // edge bin cannot fake a filled column.
-  function colOccupancy(frames, s, winH, binList, threshold) {
-    if (!binList.length) return 0;
-    var hitCount = 0;
-    for (var r = s; r < s + winH; r++) {
-      var bins = frames[r].bins;
-      for (var x = 0; x < binList.length; x++) if (bins[binList[x]] > threshold) hitCount++;
-    }
-    return hitCount / (winH * binList.length);
-  }
-
-  // Walk the tine sieve down the log and report every place a sustained all-8
-  // bar fills it: each bank column mostly "hit" (top 25% of the log's global
-  // high) and each hollow column mostly not. A contiguous run of matching
-  // positions is ONE bar - collapsed to its best-aligned window (the bar's top
-  // edge). Pure: frames = [{ t, bins }], oldest first.
-  function calSimpleDetect(frames, zone, opts) {
-    opts = opts || {};
-    var rowsPerSlot = opts.rowsPerSlot || 20;
-    var winFrac = opts.windowFrac === undefined ? 2.85 : opts.windowFrac; // polls, 5% under 3
-    var hitFrac = opts.hitFrac === undefined ? 0.75 : opts.hitFrac;       // top 25% of high
-    var solidMin = opts.solidMin === undefined ? 0.5 : opts.solidMin;
-    var hollowMax = opts.hollowMax === undefined ? 0.5 : opts.hollowMax;
-    var n = frames.length;
-    var cols = calSimpleColumns(zone);
-
-    // One global "high": the 99th percentile of every bin across the window -
-    // the same robust level "Calibrate levels" reads for the display.
-    var all = [];
-    for (var f = 0; f < n; f++) {
-      var b = frames[f].bins;
-      for (var c = 0; c < b.length; c++) all.push(b[c]);
-    }
-    all.sort(function (x, y) { return x - y; });
-    var high = all.length ? Math.max(1, all[Math.floor(all.length * 0.99)]) : 1;
-    var threshold = hitFrac * high;
-    var winH = Math.max(3, Math.round(winFrac * rowsPerSlot));
-
-    var hits = [], run = null, i;
-    for (var s = 0; s + winH <= n; s++) {
-      var bankOcc = [], laneOcc = [], ok = true;
-      for (i = 0; i < cols.banks.length; i++) {
-        var bo = colOccupancy(frames, s, winH, cols.banks[i], threshold);
-        bankOcc.push(bo);
-        if (bo <= solidMin) ok = false;
-      }
-      for (i = 0; i < cols.hollows.length; i++) {
-        var ho = colOccupancy(frames, s, winH, cols.hollows[i], threshold);
-        laneOcc.push(ho);
-        if (ho >= hollowMax) ok = false;
-      }
-      if (ok) {
-        var meanBank = 0, meanLane = 0, m;
-        for (m = 0; m < bankOcc.length; m++) meanBank += bankOcc[m] / bankOcc.length;
-        for (m = 0; m < laneOcc.length; m++) meanLane += laneOcc[m] / laneOcc.length;
-        var cand = { tStart: frames[s].t, tEnd: frames[s + winH - 1].t,
-                     polls: winH / rowsPerSlot, bankOcc: bankOcc, laneOcc: laneOcc,
-                     meanBank: meanBank, meanLane: meanLane, score: meanBank - meanLane };
-        if (!run) run = { best: cand };
-        else if (cand.score > run.best.score) run.best = cand;
-      } else if (run) {
-        hits.push(run.best);
-        run = null;
-      }
-    }
-    if (run) hits.push(run.best);
-    return { high: high, threshold: threshold, frames: n, hits: hits };
   }
 
   // ===========================================================================
@@ -3609,62 +3444,6 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
     return { zones: zoneRegions.map(scanZone), winH: winH, bits: bits };
   }
 
-  // --- The walk ------------------------------------------------------------------
-  //
-  // Try to read one full pass out of the block list at acceptance level C.
-  // Every REAL bar must land (shape AND offset - the mirror bookends encode
-  // orientation); blocks landing on DECOY slots are consumed and COUNTED
-  // (decoysHit is the walk-down's gullibility meter); anything else - saddle
-  // scores between features, stray room noise - is simply SKIPPED. A walk
-  // only fails by missing a real bar; then the next full block auditions as
-  // the opener instead.
-  function calWalkBlocks(blocks, plan, slotSec, C, tolerance) {
-    var eligible = [];
-    for (var i = 0; i < blocks.length; i++) {
-      if (blocks[i].confidence >= C) eligible.push(blocks[i]);
-    }
-    var openerKind = plan.bars[0].kind;
-    var realExpected = 0;
-    for (var r = 0; r < plan.bars.length; r++) if (!plan.bars[r].decoy) realExpected++;
-    for (var s = 0; s < eligible.length; s++) {
-      if (eligible[s].kind !== openerKind) continue;
-      var t0 = eligible[s].tStart;
-      var found = [{ slot: plan.bars[0].slot, kind: eligible[s].kind, decoy: false,
-                     level: eligible[s].level, confidence: eligible[s].confidence, tStart: t0 }];
-      var bi = 1, decoysHit = 0;
-      for (var j = s + 1; j < eligible.length && bi < plan.bars.length; j++) {
-        var blk = eligible[j];
-        var k = (blk.tStart - t0) / slotSec;
-        if (k > plan.bars[plan.bars.length - 1].slot + tolerance) break; // past this pass
-        // Probe the expectations without committing: decoys are optional
-        // (skippable when invisible at this C); an unmatched block is noise
-        // between features and is skipped without advancing anything.
-        var probe = bi;
-        while (probe < plan.bars.length) {
-          var exp = plan.bars[probe];
-          if (blk.kind === exp.kind && Math.abs(k - exp.slot) <= tolerance) {
-            found.push({ slot: exp.slot, kind: blk.kind, decoy: !!exp.decoy,
-                         level: blk.level, confidence: blk.confidence, tStart: blk.tStart });
-            if (exp.decoy) decoysHit++;
-            bi = probe + 1;
-            break;
-          }
-          if (exp.decoy) { probe++; continue; }
-          break;
-        }
-      }
-      var realFound = 0;
-      for (var v = 0; v < found.length; v++) if (!found[v].decoy) realFound++;
-      if (realFound < realExpected) continue;
-      var strongSum = 0, strongN = 0;
-      for (var w = 0; w < found.length; w++) {
-        if (!found[w].decoy) { strongSum += found[w].level; strongN++; }
-      }
-      return { t0: t0, strongLevel: strongSum / strongN, bars: found, decoysHit: decoysHit };
-    }
-    return null;
-  }
-
   // --- Harvest + drill helpers ---------------------------------------------------
 
   // Cut a window straight out of the log at an explicit time - the listener's
@@ -3965,6 +3744,49 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
       });
     };
 
+    // Fire an EDITABLE run of tone/pulse/silence steps on this zone's grid (the
+    // "Start System Calibration" textbox). Each step is one poll: a tone sustains
+    // the masked banks for the whole poll, a pulse fires them for the pulse ms, a
+    // silence is a blank poll. `noise` steps are the caller's job (real-time
+    // capture) and must be split out before calling this. Mirrors transmitPass's
+    // slot claiming, shared-`at` support, peak-safe levelScale, and events.
+    net.calibrate.transmitCustom = function (zoneId, steps, options) {
+      var zone = requireZone(state, zoneId);
+      options = options || {};
+      if (!state.started) fail("E02", "call start() before transmitting a calibration pattern");
+      if (!steps || !steps.length) fail("E09", "transmitCustom needs at least one step");
+      var levelScale = options.levelScale === undefined ? 1 : options.levelScale;
+      if (!(levelScale > 0 && levelScale <= 1)) fail("E09", "levelScale must be 0..1");
+      var plan = planCustom(zone, steps, { pulseMs: options.pulseMs }); // validates masks, reverses for firing
+      var now = state.ctx.currentTime;
+      var at = options.at !== undefined ? options.at : Math.max(
+        nextSlotTime(state.txEpoch, zone.slotSec, now + 0.05),
+        state.txEpoch + (state.txNextSlot[zone.id] || 0) * zone.slotSec
+      );
+      var startIndex = Math.round((at - state.txEpoch) / zone.slotSec);
+      state.txNextSlot[zone.id] = startIndex + plan.polls + 1; // pass + a breath
+      for (var i = 0; i < plan.emissions.length; i++) {
+        var em = plan.emissions[i];
+        if (em.kind === "silence" || em.lit === 0) continue; // blank poll (or all-off mask) sounds nothing
+        playChord(state, zone, em.fireBits, at + em.slot * zone.slotSec,
+          { levelScale: levelScale, pulseMs: em.pulseMs });
+      }
+      state.emit("sent", { zone: zone.id, bits: null, at: at, calibration: "custom" });
+      state.emit("calibration", { zone: zone.id, stage: "tx-start", at: at, polls: plan.polls, script: "custom" });
+      var endAt = at + plan.polls * zone.slotSec;
+      return new Promise(function (resolve) {
+        setTimeout(function () {
+          state.emit("calibration", { zone: zone.id, stage: "tx-done", at: at, endAt: endAt, script: "custom" });
+          resolve({ zone: zone.id, at: at, endAt: endAt, polls: plan.polls, emissions: plan.emissions });
+        }, Math.max(0, (endAt - state.ctx.currentTime) * 1000 + 60));
+      });
+    };
+
+    // Parse the editable calibration pattern text into steps + line errors.
+    net.calibrate.parsePattern = function (text, bits) {
+      return parseCalPattern(text, bits || 8);
+    };
+
     // The slot time transmitPass would start at for this zone right now - the
     // max of "next slot after now" and "this zone's next free tx slot". To fire
     // several zones on ONE shared slot, take the max of this across zones and
@@ -3978,82 +3800,6 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
         nextSlotTime(state.txEpoch, zone.slotSec, now + 0.05),
         state.txEpoch + (state.txNextSlot[zone.id] || 0) * zone.slotSec
       );
-    };
-
-    // ONE press: scan the rolling log for a pass, walking acceptance from
-    // 1.00 down in 0.01 steps to a hard floor of 0.50. The TOP is the highest
-    // level where both bookends land WITHOUT either decoy being accepted; the
-    // BOTTOM is where BOTH decoys get swallowed too - detection gone
-    // gullible. Seven presets fan evenly across the bracket (Maximum = the
-    // top hit; Lowest = just above the bottom, buffered by two steps). On
-    // success the harvest, the drill, and the grid anchor all run from the
-    // top-confidence walk; on failure the diagnostics say what WAS in the
-    // log. Purely retroactive - the log is always rolling, so a pass heard
-    // before anyone pressed the button detects just the same.
-    net.calibrate.detect = function (zoneId, options) {
-      var zone = requireZone(state, zoneId);
-      options = options || {};
-      var plan = expandCalScript(options.script || CAL_SCRIPT, zone);
-      ensureRxChain(net, state);
-      var from = options.from === undefined ? 1.0 : options.from;
-      var to = options.to === undefined ? 0.25 : options.to;
-      var step = options.step === undefined ? 0.01 : options.step;
-      var tolerance = options.tolerance === undefined ? 0.6 : options.tolerance;
-      if (!(from > to && step > 0)) fail("E09", "detect needs from > to and a positive step");
-      var scan = calScanLog(state, zone, options);
-      var top = null, bottom = null, topWalk = null;
-      var stepH = Math.max(1, Math.round(step * 100));
-      for (var c = Math.round(from * 100); c >= Math.round(to * 100); c -= stepH) {
-        var C = c / 100;
-        var walk = calWalkBlocks(scan.blocks, plan, zone.slotSec, C, tolerance);
-        if (!walk) continue;
-        if (top === null && walk.decoysHit === 0) { top = C; topWalk = walk; }
-        if (bottom === null && walk.decoysHit >= 2) bottom = C;
-        if (top !== null && bottom !== null) break;
-      }
-      var diagnostics = {
-        blocks: scan.blocks.map(function (b) {
-          return { tStart: b.tStart, kind: b.kind,
-                   lowFill: Math.round(b.lowFill * 100) / 100,
-                   highFill: Math.round(b.highFill * 100) / 100,
-                   laneFill: Math.round(b.laneFill * 100) / 100,
-                   level: Math.round(b.level),
-                   confidence: Math.round(b.confidence * 100) / 100 };
-        }),
-        levels: { hot: scan.hot, floor: scan.floor },
-        searched: { from: from, to: to, step: step }
-      };
-      if (top === null) {
-        return { detected: false, script: plan.name, diagnostics: diagnostics };
-      }
-      // The bracket -> seven presets, evenly fanned. The bottom is buffered
-      // two steps back up (the middle of the three levels above the point
-      // where both decoys bite); an unreached bottom clamps to the search
-      // floor and says so via bottomReached.
-      var bottomSafe = bottom === null ? to : Math.min(top, Math.round((bottom + 2 * step) * 100) / 100);
-      var names = ["maximum", "ultraHigh", "veryHigh", "high", "medium", "low", "lowest"];
-      var presets = {};
-      for (var n = 0; n < names.length; n++) {
-        presets[names[n]] = Math.round((top - (top - bottomSafe) * n / (names.length - 1)) * 100) / 100;
-      }
-      // 0.50 stays the TRUST LINE even though the meter now sees below it: a
-      // top under the line still arms (test-friendly) but must be called out.
-      var bracket = { top: top, bottom: bottom, bottomReached: bottom !== null,
-                      trustLine: 0.5, belowTrust: top < 0.5, presets: presets };
-      var report = null, harvestError = null;
-      try {
-        report = calFinish(net, state, zone, plan, topWalk);
-        report.bracket = bracket;
-      } catch (err) {
-        harvestError = err && err.message ? err.message : String(err);
-      }
-      state.emit("calibration", { zone: zoneId, stage: "detected", bracket: bracket, report: report });
-      return {
-        detected: true, script: plan.name,
-        bracket: bracket, walk: topWalk,
-        report: report, harvestError: harvestError,
-        diagnostics: diagnostics
-      };
     };
 
     // The singleness rule: a row counts as a SINGLE HIT only when exactly one
@@ -4085,33 +3831,6 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
         matches: matches,
         scores: scores
       };
-    };
-
-    // "Simple Detection" - the primitive, proven simplest. One press scans the
-    // recent log (last windowSec, default 10) with the tine sieve and reports
-    // every sustained all-8 bar it finds: time + per-hit bank/lane occupancy.
-    // Purely a detector proof - no harvest, no bracket, no arming.
-    net.calibrate.simpleDetect = function (zoneId, options) {
-      var zone = requireZone(state, zoneId);
-      options = options || {};
-      ensureRxChain(net, state);
-      var windowSec = options.windowSec === undefined ? 10 : options.windowSec;
-      var frames = state.logFrames[zone.id] ? state.logFrames[zone.id].frames : [];
-      var recent = frames;
-      if (frames.length && windowSec > 0) {
-        var cutoff = frames[frames.length - 1].t - windowSec;
-        recent = frames.filter(function (fr) { return fr.t >= cutoff - 1e-9; });
-      }
-      var rowsPerSlot = Math.max(1, Math.round(zone.pollingMs / state.opts.rxIntervalMs));
-      var result = calSimpleDetect(recent, zone, {
-        rowsPerSlot: rowsPerSlot,
-        windowFrac: options.windowFrac, hitFrac: options.hitFrac,
-        solidMin: options.solidMin, hollowMax: options.hollowMax
-      });
-      result.windowSec = windowSec;
-      state.emit("calibration", { zone: zone.id, stage: "simple-detect",
-        high: result.high, hits: result.hits.length });
-      return result;
     };
 
     // The barcode command engine: "find this pattern" and "find this sequence",
@@ -4307,11 +4026,9 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
     CAL_SCRIPT: CAL_SCRIPT,
     resolveBarBanks: resolveBarBanks,
     expandCalScript: expandCalScript,
-    calFillBlocks: calFillBlocks,
-    calWalkBlocks: calWalkBlocks,
+    parseCalPattern: parseCalPattern,
+    planCustom: planCustom,
     calSimpleColumns: calSimpleColumns,
-    calSimpleDetect: calSimpleDetect,
-    deriveGapEnergies: deriveGapEnergies,
     barcodeBar: barcodeBar,
     barcodeStair: barcodeStair,
     barcodeMirror: barcodeMirror,
@@ -4411,11 +4128,17 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
       expectCode("E09", function () { net.zones.add("a", { base: 16000, step: 40, bits: 8 }); });
     });
 
-    test("zones: overlap is refused, guard bands included", function () {
+    test("zones: overlap refused; contiguous zones allowed (tolerance-only guard)", function () {
       var net = AudioPulse.create();
-      net.zones.add("p1", { base: 15000, step: 40, bits: 8 }); // ceiling 15330
-      expectCode("E04", function () { net.zones.add("p2", { base: 15350, step: 40, bits: 8 }); }); // floor 15300
-      net.zones.add("p2", { base: 15600, step: 40, bits: 8 }); // clear of it
+      net.zones.add("p1", { base: 6000, step: 100, bits: 8 });
+      var p1 = net.zones.get("p1"), s = p1.step, b = p1.base;
+      // A zone whose banks intrude into p1's span (guard bands included) is refused.
+      expectCode("E04", function () { net.zones.add("bad", { base: b + 6 * s, step: s, bits: 8 }); });
+      // Contiguous: first bank exactly one step past p1's last bank (bufferLanes 0)
+      // is ALLOWED now that the guard is tolerance-only - zones pack end-to-end.
+      net.zones.add("p2", { base: b + 8 * s, step: s, bits: 8 });
+      var p2 = net.zones.get("p2");
+      assert(Math.abs(p2.base - (b + 8 * s)) < 1e-6, "p2 sits one step past p1's last bank");
     });
 
     test("zones/layers/players: unknown ids are E06", function () {
@@ -4578,6 +4301,47 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
       assert(I.calibratePattern(net.zones.get("z2")) === "10");
       net.reserve("z8", "10011001", "calibrate");
       assert(I.calibratePattern(net.zones.get("z8")) === "10011001", "explicit reserve wins");
+    });
+
+    test("calibration pattern: the DSL parses tags, masks, silence, and errors", function () {
+      var r = I.parseCalPattern("noisecancel:1000\ntone:11100000\n\npulse:10000000\nTONE:00001111", 8);
+      assert(r.errors.length === 0, "clean parse has no errors, got " + JSON.stringify(r.errors));
+      assert(r.steps.length === 5, "five steps (incl. the blank-line silence), got " + r.steps.length);
+      assert(r.steps[0].kind === "noise" && r.steps[0].ms === 1000, "noisecancel -> noise ms");
+      assert(r.steps[1].kind === "tone" && r.steps[1].mask === "11100000", "tone mask");
+      assert(r.steps[2].kind === "silence", "blank line -> silence");
+      assert(r.steps[3].kind === "pulse" && r.steps[3].mask === "10000000", "pulse mask");
+      assert(r.steps[4].kind === "tone", "tags are case-insensitive (TONE:)");
+      // Errors are line-numbered and do not abort the rest of the parse.
+      var e = I.parseCalPattern("tone:111\nbogus:1\nnoisecancel:0\ntone:11111111", 8);
+      assert(e.steps.length === 1 && e.steps[0].mask === "11111111", "only the valid step survives");
+      assert(e.errors.length === 3, "three errors (short mask, unknown tag, non-positive ms), got " + e.errors.length);
+      assert(e.errors[0].line === 1 && /8 bits/.test(e.errors[0].msg), "short mask flagged on line 1");
+      assert(e.errors[2].line === 3 && /positive ms/.test(e.errors[2].msg), "zero ms flagged on line 3");
+    });
+
+    test("calibration pattern: planCustom reverses masks for firing, sizes tone vs pulse", function () {
+      var net = AudioPulse.create();
+      net.zones.add("z", { base: 2000, step: 107, bits: 8, pollingMs: 200, pulseMs: 50 });
+      var z = net.zones.get("z");
+      var plan = I.planCustom(z, [
+        { kind: "tone", mask: "11000000" }, { kind: "silence" },
+        { kind: "pulse", mask: "00000001" }, { kind: "tone", mask: "00000000" }
+      ], {});
+      assert(plan.polls === 4, "one poll per step");
+      assert(plan.tonePulseMs === 200 && plan.pulsePulseMs === 50, "tone sustains a full poll; pulse is the pulse ms");
+      var em = plan.emissions;
+      // fireBits = mask reversed, so playChord (rightmost = freqs[0]) lights the
+      // SAME banks the reader reads left-to-right (freqs[c] <-> mask char c).
+      assert(em[0].kind === "tone" && em[0].fireBits === "00000011" && em[0].lit === 2, "tone mask reversed for firing");
+      assert(em[0].pulseMs === 200, "tone emission sustains the poll");
+      assert(em[1].kind === "silence", "blank step stays silent");
+      assert(em[2].kind === "pulse" && em[2].fireBits === "10000000" && em[2].pulseMs === 50, "pulse reversed + pulse-length");
+      assert(em[3].kind === "tone" && em[3].lit === 0, "an all-off tone is counted as zero-lit (sounds nothing)");
+      // A noise step must be split out before planning; planning one is an error.
+      expectCode("E09", function () { I.planCustom(z, [{ kind: "noise", ms: 500 }], {}); });
+      // Mask length must match the zone's banks.
+      expectCode("E09", function () { I.planCustom(z, [{ kind: "tone", mask: "1111" }], {}); });
     });
 
     // ---- Link layer (Sections 8-11) -----------------------------------------
@@ -5098,103 +4862,6 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
       assert(net.calibrate.script().steps.length === 15, "and mutation-proof (deep copy)");
     });
 
-    test("calibration: gap energies read the comb's dark lanes", function () {
-      var net = AudioPulse.presets.singleLoopback(AudioPulse.create());
-      net._test.grid("loop"); // builds zone.bins
-      var zone = net.zones.get("loop");
-      var bins = quietBins(zone);
-      var c3 = Math.round(zone.freqs[2] / zone.bins.binHz) - zone.bins.binLo;
-      bins[c3] = 180; // bank 3's center lit
-      assert(I.deriveEnergies(zone, bins)[2] === 180, "bank 3 sees its center");
-      var gaps = I.deriveGapEnergies(zone, bins);
-      for (var g = 0; g < gaps.length; g++) assert(gaps[g] === 0, "gap " + g + " stays dark");
-      var bins2 = quietBins(zone);
-      var mid = Math.round((zone.freqs[2] + zone.step / 2) / zone.bins.binHz) - zone.bins.binLo;
-      bins2[mid] = 150; // the LANE between banks 3 and 4 lit (a decoy's tell)
-      var gaps2 = I.deriveGapEnergies(zone, bins2);
-      assert(gaps2[2] === 150, "gap 3 sees the lane, got " + gaps2[2]);
-      var e2 = I.deriveEnergies(zone, bins2);
-      assert(e2[2] === 0 && e2[3] === 0, "the bank centers stay dark");
-    });
-
-    test("calibration: the fill grid judges blocks like the eye does (decoys near-miss)", function () {
-      // Build a synthetic sample strip: quiet, a REAL bar, quiet, a DECOY bar
-      // (lanes flickering around their threshold, like a hiss), quiet, a
-      // low-half bar, quiet, a pulse-length blip, quiet.
-      var thr = [100, 100, 100, 100, 100, 100, 100, 100];
-      var laneThr = [100, 100, 100, 100, 100, 100, 100];
-      var samples = [];
-      function strip(tFrom, tTo, banks, laneHi, laneLo) {
-        var idx = 0;
-        for (var t = tFrom; t < tTo - 1e-9; t += 0.01) {
-          var g = [];
-          for (var L = 0; L < 7; L++) g.push((idx % 2) ? (laneHi || 0) : (laneLo || 0));
-          samples.push({ t: t, e: banks.slice(), g: g });
-          idx++;
-        }
-      }
-      var quiet = [0, 0, 0, 0, 0, 0, 0, 0];
-      var full = [200, 200, 200, 200, 200, 200, 200, 200];
-      var lowHalf = [200, 200, 200, 200, 0, 0, 0, 0];
-      var dimTop = [200, 200, 200, 200, 200, 200, 60, 40]; // b7/b8 rolled off, like Aaron's mic
-      strip(0.0, 0.5, quiet);
-      strip(0.5, 1.1, full);                 // REAL bar: dark lanes
-      strip(1.1, 1.3, quiet);
-      strip(1.3, 1.9, full, 124, 76);        // DECOY: lanes flicker around threshold (~half filled)
-      strip(1.9, 2.1, quiet);
-      strip(2.1, 2.7, lowHalf);              // half-band bar
-      strip(2.7, 3.4, quiet);
-      strip(3.4, 3.45, full);                // pulse-length blip
-      strip(3.45, 4.2, quiet);
-      var blocks = I.calFillBlocks(samples, 0.2, { bankThresholds: thr, laneThresholds: laneThr });
-      function bestNear(t, tol) {
-        var best = null;
-        for (var i = 0; i < blocks.length; i++) {
-          if (Math.abs(blocks[i].tStart - t) <= tol && (!best || blocks[i].confidence > best.confidence)) {
-            best = blocks[i];
-          }
-        }
-        return best;
-      }
-      var real = bestNear(0.5, 0.06);
-      assert(real && real.kind === "all" && real.confidence > 0.95,
-        "a true bar peaks near 1.0, got " + (real && real.kind + " " + real.confidence));
-      assert(Math.abs(real.level - 200) < 1e-6 && real.laneFill < 0.05, "level + dark lanes read out");
-      var peaks = blocks.filter(function (b) {
-        return Math.abs(b.tStart - 0.5) <= 0.21 && b.confidence > 0.9;
-      });
-      assert(peaks.length === 1, "ONE peak per bar - no fragmentation, got " + peaks.length);
-      var decoy = bestNear(1.3, 0.06);
-      assert(decoy && decoy.kind === "all", "a decoy still LOOKS like a bar");
-      assert(decoy.laneFill > 0.3 && decoy.laneFill < 0.7, "its lanes half-fill, got " + decoy.laneFill);
-      assert(decoy.confidence > 0.3 && decoy.confidence < 0.7 &&
-             decoy.confidence < real.confidence - 0.25,
-        "the near-miss: well below the real bar, got " + decoy.confidence);
-      var half = bestNear(2.1, 0.06);
-      assert(half && half.kind === "lowhalf" && half.confidence > 0.9,
-        "low half, got " + (half && half.kind + " " + half.confidence));
-      var blip = bestNear(3.4, 0.06);
-      assert(!blip || blip.confidence < 0.3,
-        "a pulse-length blip dilutes to nothing, got " + (blip && blip.confidence));
-      // The real-air fix: per-bank thresholds absorb the high-band rolloff.
-      var samples2 = [];
-      var samplesRef = samples; samples = samples2;
-      strip(0.0, 0.4, quiet);
-      strip(0.4, 1.0, dimTop);
-      strip(1.0, 1.4, quiet);
-      samples = samplesRef;
-      var rolled = I.calFillBlocks(samples2, 0.2, {
-        bankThresholds: [100, 100, 100, 100, 100, 100, 40, 25],
-        laneThresholds: laneThr
-      });
-      var rolledBest = null;
-      for (var rb = 0; rb < rolled.length; rb++) {
-        if (!rolledBest || rolled[rb].confidence > rolledBest.confidence) rolledBest = rolled[rb];
-      }
-      assert(rolledBest && rolledBest.kind === "all" && rolledBest.confidence > 0.95,
-        "a rolled-off bar is still a FULL bar, got " + (rolledBest && rolledBest.kind + " " + rolledBest.confidence));
-    });
-
     test("simple detection: the tine sieve tiles 17 non-overlapping half-band columns", function () {
       var net = AudioPulse.presets.singleLoopback(AudioPulse.create());
       net._test.grid("loop");
@@ -5216,66 +4883,6 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
       var c0 = Math.round(zone.freqs[0] / zone.bins.binHz) - zone.bins.binLo;
       assert(cols.hollows[1].indexOf(midBin) >= 0, "the b1-b2 hollow holds their midpoint");
       assert(cols.hollows[1].indexOf(c0) < 0, "and excludes b1's center");
-    });
-
-    test("simple detection: finds sustained all-8 bars, ignores half bars and silence", function () {
-      var net = AudioPulse.presets.singleLoopback(AudioPulse.create());
-      net._test.grid("loop");
-      var zone = net.zones.get("loop");
-      var cols = I.calSimpleColumns(zone);
-      var rowsPerSlot = 20; // 200 ms / 10 ms
-      var frames = [], t = 0;
-      function block(activeBanks, level, laneLevel, polls) {
-        var count = Math.round(polls * rowsPerSlot);
-        for (var fr = 0; fr < count; fr++) {
-          var bins = new Uint8Array(zone.bins.count);
-          activeBanks.forEach(function (bk) { cols.banks[bk].forEach(function (bi) { bins[bi] = level; }); });
-          // Optional leakage bleed in the lanes - dimmer than the hit threshold,
-          // so occupancy must (correctly) ignore it.
-          if (laneLevel) cols.hollows.forEach(function (h) { h.forEach(function (bi) { bins[bi] = laneLevel; }); });
-          frames.push({ t: t, bins: bins }); t += 0.01;
-        }
-      }
-      var ALL = [0, 1, 2, 3, 4, 5, 6, 7], LOW = [0, 1, 2, 3];
-      block([], 0, 0, 3);          // silence
-      block(ALL, 200, 100, 3);     // all-8 bar with lane bleed at 100 (hit #1)
-      block([], 0, 0, 3);          // silence
-      block(LOW, 200, 0, 3);       // low-half bar - NOT all-8
-      block([], 0, 0, 3);          // silence
-      block(ALL, 200, 0, 3);       // all-8 bar (hit #2)
-      block([], 0, 0, 3);          // silence
-      var res = I.calSimpleDetect(frames, zone, { rowsPerSlot: rowsPerSlot });
-      assert(res.high === 200 && Math.abs(res.threshold - 150) < 1e-9, "high 200, hit > 150");
-      assert(res.hits.length === 2, "exactly two all-8 bars, got " + res.hits.length);
-      // The bleed at 100 is below the 150 threshold - lanes still read hollow.
-      assert(res.hits[0].meanBank > 0.9 && res.hits[0].meanLane < 0.1,
-        "solid banks, hollow lanes despite bleed (" + res.hits[0].meanBank.toFixed(2) +
-        "/" + res.hits[0].meanLane.toFixed(2) + ")");
-      // Hits land ON the two all-8 blocks (0.6 s and 2.4 s in).
-      assert(Math.abs(res.hits[0].tStart - 0.6) < 0.15, "first bar near 0.6 s, got " + res.hits[0].tStart);
-      assert(Math.abs(res.hits[1].tStart - 3.0) < 0.15, "second bar near 3.0 s, got " + res.hits[1].tStart);
-    });
-
-    test("simple detection: one 3-poll bar is exactly ONE hit (run collapse)", function () {
-      var net = AudioPulse.presets.singleLoopback(AudioPulse.create());
-      net._test.grid("loop");
-      var zone = net.zones.get("loop");
-      var cols = I.calSimpleColumns(zone);
-      var rowsPerSlot = 20, frames = [], t = 0;
-      function block(active, level, polls) {
-        var count = Math.round(polls * rowsPerSlot);
-        for (var fr = 0; fr < count; fr++) {
-          var bins = new Uint8Array(zone.bins.count);
-          active.forEach(function (bk) { cols.banks[bk].forEach(function (bi) { bins[bi] = level; }); });
-          frames.push({ t: t, bins: bins }); t += 0.01;
-        }
-      }
-      block([], 0, 4);
-      block([0, 1, 2, 3, 4, 5, 6, 7], 200, 3); // a single sustained bar
-      block([], 0, 4);
-      var res = I.calSimpleDetect(frames, zone, { rowsPerSlot: rowsPerSlot });
-      assert(res.hits.length === 1, "the whole matching run collapsed to ONE hit, got " + res.hits.length);
-      assert(res.hits[0].meanBank > 0.95, "reported at its best-aligned window");
     });
 
     // --- Barcode: the ZNCC matched-filter pattern engine -----------------------
@@ -5738,126 +5345,6 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
         t += opts.jitter ? (i % 2 ? 0.008 : 0.012) : 0.01;
       }
     }
-
-    test("calibration: one press detects the pass and brackets the room (top vs decoy bottom)", function () {
-      var net = AudioPulse.presets.singleLoopback(AudioPulse.create());
-      feedCalPass(net, "loop", 1.03, 200, 120); // fed BEFORE anyone pressed - detection is retroactive
-      var anchors = [];
-      net.on("anchor", function (a) { anchors.push(a); });
-      var result = net.calibrate.detect("loop");
-      assert(result.detected === true, "detected from the backlog");
-      assert(result.harvestError === null, "harvest clean, got: " + result.harvestError);
-      assert(Math.abs(result.walk.t0 - 1.03) < 0.02, "phase from the air, got " + result.walk.t0);
-      assert(result.walk.decoysHit === 0, "the top walk accepted NO decoys");
-      // The bracket: a clean top, and a bottom where both decoys bite.
-      var br = result.bracket;
-      assert(br.top !== null && br.bottomReached === true && br.bottom < br.top,
-        "bracket " + br.top + " .. " + br.bottom);
-      // Seven presets, descending, Maximum = the top hit, Lowest buffered
-      // above the gullibility point, everything inside [search floor, top].
-      var names = ["maximum", "ultraHigh", "veryHigh", "high", "medium", "low", "lowest"];
-      var prev = null;
-      for (var i = 0; i < names.length; i++) {
-        var v = br.presets[names[i]];
-        assert(typeof v === "number" && v >= 0.5 - 1e-9 && v <= br.top + 1e-9,
-          names[i] + " in range, got " + v);
-        if (prev !== null) assert(v <= prev + 1e-9, "presets descend");
-        prev = v;
-      }
-      assert(br.presets.maximum === br.top, "Maximum IS the top hit");
-      assert(br.presets.lowest >= br.bottom, "Lowest sits above the gullibility point");
-      assert(br.trustLine === 0.5 && br.belowTrust === false, "a clean pass sits above the trust line");
-      // The report: harvested + drilled, same contract as before.
-      var report = result.report;
-      assert(report && report.bracket === br, "report carries the bracket");
-      assert(Math.abs(report.levels.strong - 200) < 10, "strong level from the bars, got " + report.levels.strong);
-      assert(Math.abs(report.levels.strongCells - 200) < 10, "strong CELL level reported, got " + report.levels.strongCells);
-      assert(Math.abs(report.levels.weak - 120) < 10, "weak level from the staircase cells, got " + report.levels.weak);
-      var kinds = report.bars.map(function (wb) { return wb.kind; }).join();
-      assert(kinds === "all,lowhalf,highhalf,all", "the top walk holds the four REAL bars, got " + kinds);
-      assert(report.prints.singleStrong && report.prints.singleWeak &&
-             report.prints.singleStrong.banks[0] === report.prints.singleStrong.banks[1],
-        "generic singles are single-bank prints");
-      assert(report.prints.staircaseStrong.slots === 3 && report.prints.staircaseWeak.slots === 3,
-        "staircase sequence prints span 3 polls");
-      assert(report.targets.length === 4);
-      for (var tg2 = 0; tg2 < report.targets.length; tg2++) {
-        var tg = report.targets[tg2];
-        assert(tg.hitFloor > tg.noiseCeiling && tg.margin > 0 &&
-               tg.recommended >= tg.noiseCeiling && tg.recommended <= tg.hitFloor,
-          tg.name + ": floor " + tg.hitFloor + " / ceiling " + tg.noiseCeiling);
-      }
-      assert(report.targets[2].crossLevel !== undefined, "cross-level robustness reported");
-      // ARMED: the calibration anchor fired at t0.
-      var calAnchor = null;
-      for (var an = 0; an < anchors.length; an++) {
-        if (anchors[an].source === "calibration") calAnchor = anchors[an];
-      }
-      assert(calAnchor && Math.abs(calAnchor.t0 - result.walk.t0) < 1e-9, "calibration anchor fired at t0");
-      assert(net._test.grid("loop").isAnchored(), "and the grid is anchored");
-    });
-
-    test("calibration: detect validates its dials and never throws on a quiet log", function () {
-      var net = AudioPulse.presets.singleLoopback(AudioPulse.create());
-      net._test.grid("loop");
-      var zone = net.zones.get("loop");
-      var empty = net.calibrate.detect("loop"); // no frames at all
-      assert(empty.detected === false && empty.diagnostics, "empty log = clean miss");
-      for (var t = 0; t <= 3; t += 0.01) net._test.feedFrame("loop", t, quietBins(zone));
-      var r = net.calibrate.detect("loop");
-      assert(r.detected === false && r.diagnostics.searched.from === 1 && r.diagnostics.searched.to === 0.25,
-        "quiet log = clean miss with the search range reported");
-      expectCode("E09", function () { net.calibrate.detect("loop", { from: 0.4, to: 0.5 }); });
-      expectCode("E06", function () { net.calibrate.detect("nope"); });
-    });
-
-    test("simple detection: the net method scans the recent log, finds the fired bars", function () {
-      var net = AudioPulse.presets.singleLoopback(AudioPulse.create());
-      net._test.grid("loop");
-      var zone = net.zones.get("loop");
-      // A quiet log first: nothing to find.
-      for (var t = 0; t < 3; t += 0.01) net._test.feedFrame("loop", t, quietBins(zone));
-      var quiet = net.calibrate.simpleDetect("loop");
-      assert(quiet.hits.length === 0 && quiet.frames > 0 && quiet.windowSec === 10,
-        "quiet log finds nothing over the default 10 s window");
-      expectCode("E06", function () { net.calibrate.simpleDetect("nope"); });
-      // Now a real pass: the sustained all-8 bookend bars must show up. (At the
-      // 0.75-of-high hit threshold the quiet hiss decoys read hollow too, so a
-      // decoy - itself a sustained all-8 bar - may also register: this proof
-      // only promises the REAL bars are found.)
-      var net2 = AudioPulse.presets.singleLoopback(AudioPulse.create());
-      feedCalPass(net2, "loop", 1.0, 200, 120, { spread: 1 }); // real tones fill their column
-      var res = net2.calibrate.simpleDetect("loop");
-      assert(res.hits.length >= 2, "found the sustained all-8 bars, got " + res.hits.length);
-      var nearOpener = res.hits.some(function (h) { return Math.abs(h.tStart - 1.0) < 0.2; });
-      assert(nearOpener, "including the opening bar near t0=1.0 s");
-      res.hits.forEach(function (h) {
-        assert(h.meanBank > 0.6 && h.meanLane < 0.5, "each hit is solid banks / hollow lanes");
-      });
-    });
-
-    test("calibration: a truncated pass does not detect; the next full pass does", function () {
-      var net = AudioPulse.presets.singleLoopback(AudioPulse.create());
-      feedCalPass(net, "loop", 1.0, 200, 120, { skipCloser: true }); // closing bookend never sounds
-      var r1 = net.calibrate.detect("loop");
-      assert(r1.detected === false, "no detection without the closing bookend");
-      assert(r1.diagnostics.blocks.length >= 3, "but the diagnostics SAW the opener blocks");
-      feedCalPass(net, "loop", 12.0, 200, 120); // one press later, a clean pass
-      var r2 = net.calibrate.detect("loop");
-      assert(r2.detected === true && Math.abs(r2.walk.t0 - 12.0) < 0.02,
-        "the fresh pass detected at its own phase, got " + (r2.walk && r2.walk.t0));
-    });
-
-    test("calibration: real-mic frame jitter cannot break the harvest (repeat-run E09 regression)", function () {
-      var net = AudioPulse.presets.singleLoopback(AudioPulse.create());
-      feedCalPass(net, "loop", 1.0, 200, 120, { jitter: true }); // 8/12 ms frames, not a clean 10
-      var result = net.calibrate.detect("loop");
-      assert(result.detected === true, "detected despite jitter");
-      assert(result.harvestError === null, "no harvest error, got: " + result.harvestError);
-      assert(result.report.prints.singleStrong.rows === result.report.prints.singleWeak.rows &&
-             result.report.prints.staircaseStrong.rows === result.report.prints.staircaseWeak.rows,
-        "every harvested window pinned to one shape");
-    });
 
     test("fingerprints: average is the aligned mean with dims + standards guarded", function () {
       var net = AudioPulse.presets.singleLoopback(AudioPulse.create());
@@ -6391,21 +5878,23 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
         base: +$("xp-base").value, step: +$("xp-step").value,
         banks: +$("xp-banks").value, poll: +$("xp-poll").value, pulse: +$("xp-pulse").value,
         zoneCount: Math.max(1, Math.min(8, Math.round(+$("xp-zones").value || 1))),
-        bufferLanes: Math.max(2, Math.round(+$("xp-buffer").value || 2)),
+        bufferLanes: Math.max(0, Math.min(8, Math.round(+$("xp-buffer").value || 0))),
         calScale: Math.max(0.05, Math.min(1, +$("xp-calscale").value || 0.25))
       };
     }
 
     // Zones laid end-to-end on the shared step lattice with `bufferLanes` empty
-    // slots of guard between them. baseSpacing = (banks + bufferLanes) * step; the
-    // engine's per-zone guard band needs bufferLanes >= 2 for 8-bank zones (1 is
-    // rejected as an overlap), which is exactly the pollution buffer we want.
+    // slots of guard between them. baseSpacing = (banks + bufferLanes) * step.
+    // With the tolerance-only guard band, bufferLanes 0 is legal: zones pack
+    // CONTIGUOUSLY (zone k+1's first bank one step past zone k's last), so a
+    // barcode reads as one continuous comb with no wide inter-zone gap.
     function computeZoneBases(s) {
       // Snap on the 48 kHz reference (DEFAULTS.sampleRate - the largest common
       // rate, so the WIDEST snapped step): each zone re-snaps its own step on add
       // at the REAL rate, which is never wider, so spacing computed here always
-      // clears the engine's overlap guard (needs > 9.5*step for 8-bank zones;
-      // (banks + bufferLanes)*step = 10*step leaves 0.5*step of margin).
+      // clears the engine's overlap guard (needs > 7*step + 2*tolerance for
+      // 8-bank zones; (banks + bufferLanes)*step = 8*step at bufferLanes 0 clears
+      // it by ~0.5*step).
       var I = AudioPulse.internals;
       var snapped = I.snapToBins(I.DEFAULTS.sampleRate, I.DEFAULTS.fftSize, s.base, s.step);
       var spacing = (s.banks + s.bufferLanes) * snapped.step;
@@ -6426,7 +5915,7 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
     }
 
     var XP_BUTTONS = ["xp-apply", "xp-firepulse", "xp-fireseq", "xp-noise", "xp-noiseclear",
-      "xp-callevels", "xp-pause", "xp-resetview", "xp-copypng", "br-scan", "br-clear", "dt-add", "bc-run", "cal-start", "cal-detect", "cal-simple", "cal-barcode"];
+      "xp-callevels", "xp-pause", "xp-resetview", "xp-copypng", "br-scan", "br-clear", "dt-add", "bc-run", "cal-start", "cal-barcode"];
     function setLive(live) {
       XP_BUTTONS.forEach(function (id) { $(id).disabled = !live; });
     }
@@ -6479,9 +5968,6 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
         bcRunning = false;
         $("bc-status").textContent = "idle";
         calFiring = false;
-        calState = "idle";
-        calButtonSync();
-        calLevelsReset();
         calStatus("idle");
         setLive(true);
         // The engine snapped base/step onto the bin lattice - reflect the
@@ -6717,14 +6203,17 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
         }
       });
     }
-    $("br-scan").onclick = function () {
-      if (!xNet || !display || !rows.length) { toast("Enable and let the stream fill first", "bad"); return; }
+    // The per-zone Barcode Reader scan of the frozen snapshot. Shared by the
+    // Reader's "Scan frozen 60 s" button and the calibration card's "Detect
+    // Barcode". Returns the total stack count, or -1 if it could not run.
+    function runReaderScan() {
+      if (!xNet || !display || !rows.length) { toast("Enable and let the stream fill first", "bad"); return -1; }
       if (!paused) {
         $("br-status").innerHTML = '<b class="bad">pause first</b> - the reader scans the frozen snapshot';
-        toast("Pause the stream, then scan", "bad"); return;
+        toast("Pause the stream, then scan", "bad"); return -1;
       }
       var mask = ($("br-pattern").value || "").trim();
-      if (!/^[01]{8}$/.test(mask)) { toast("Pattern must be 8 characters of 0/1", "bad"); return; }
+      if (!/^[01]{8}$/.test(mask)) { toast("Pattern must be 8 characters of 0/1", "bad"); return -1; }
       var I = AudioPulse.internals;
       var durMs = brClamp($("br-duration").value, 20, 60000, 200);
       var winH = Math.max(1, Math.round(durMs / I.DEFAULTS.rxIntervalMs));
@@ -6741,7 +6230,9 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
       var total = readerResult.zones.reduce(function (a, zr) { return a + zr.stacks.length; }, 0);
       if (total) toast(total + " stack" + (total === 1 ? "" : "s") + " across zones - see the overlays", "ok");
       else toast("No stacks - see console for the limiting gate per zone", "bad");
-    };
+      return total;
+    }
+    $("br-scan").onclick = runReaderScan;
     $("br-clear").onclick = function () {
       readerResult = null; readerOverlays = [];
       $("br-status").textContent = "overlays cleared";
@@ -7183,303 +6674,100 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
     // --- System Calibration: fire a pass, or detect one from the rolling log ------
 
     var calFiring = false;
-    var calState = "idle";  // idle <-> calibrated (Detect Calibration <-> Clear Calibration)
-    var calChosenLevel = null; // { name, value } - the player's precision choice
-    var calBracket = null;
 
     function calStatus(text, good) {
       $("cal-status").innerHTML = good ? '<b class="ok">' + text + "</b>" : text;
     }
 
-    function calButtonSync() {
-      $("cal-detect").textContent = calState === "calibrated" ? "Clear Calibration" : "Detect Calibration";
-    }
-
-    // The precision presets, fanned across the measured bracket. Players pick
-    // a word, never a confidence number. High is the expected everyday pick.
-    var CAL_LEVEL_NAMES = [
-      ["maximum", "Maximum"], ["ultraHigh", "Ultra High"], ["veryHigh", "Very High"],
-      ["high", "High"], ["medium", "Medium"], ["low", "Low"], ["lowest", "Lowest"]
-    ];
-    function calLevelsPopulate(presets) {
-      var sel = $("cal-level");
-      sel.innerHTML = "";
-      CAL_LEVEL_NAMES.forEach(function (pair) {
-        var opt = document.createElement("option");
-        opt.value = pair[0];
-        opt.textContent = pair[1] + " (" + presets[pair[0]].toFixed(2) + ")";
-        sel.appendChild(opt);
-      });
-      sel.value = "high";
-      calChosenLevel = { name: "high", value: presets.high };
-      sel.disabled = false;
-      sel.onchange = function () {
-        if (calBracket && calBracket.presets[sel.value] !== undefined) {
-          calChosenLevel = { name: sel.value, value: calBracket.presets[sel.value] };
-          calStatus("detection level: " + sel.value + " (" + calChosenLevel.value.toFixed(2) + ")", true);
-        }
-      };
-    }
-    function calLevelsReset() {
-      var sel = $("cal-level");
-      sel.innerHTML = '<option value="">&mdash;</option>';
-      sel.disabled = true;
-      sel.onchange = null;
-      calChosenLevel = null;
-      calBracket = null;
-    }
-
-    function calTargetByName(report, name) {
-      for (var i = 0; i < report.targets.length; i++) {
-        if (report.targets[i].name === name) return report.targets[i];
-      }
-      return null;
-    }
-
-    // Enroll (or refresh) a distinguished self-primed entry. Recalibrating
-    // replaces the prints and threshold rather than stacking duplicates.
-    function calEnroll(label, color, prints, confidence, slide) {
-      var entry = null;
-      for (var i = 0; i < dtEntries.length; i++) {
-        if (dtEntries[i].calibrated && dtEntries[i].label === label) entry = dtEntries[i];
-      }
-      if (!entry) {
-        entry = { id: ++dtSeq, enabled: true, label: label, color: color,
-                  confidence: 85, prints: [], matches: [], calibrated: true, slideBanks: false };
-        dtEntries.push(entry);
-      }
-      entry.prints = prints.filter(function (fp) {
-        return AudioPulse.fingerprints.matchesZone(fp, zone);
-      });
-      entry.confidence = Math.min(100, Math.max(1, confidence));
-      entry.slideBanks = !!slide;
-      dtRetroScan(entry);
-    }
-
-    // The F12 report - every value the drill determined, human-readable, plus
-    // the raw object for copying numbers out.
-    function calReport(r) {
-      console.log("AudioPulse calibration report (" + r.script + ") - zone '" + r.zone.id + "'");
-      console.log("  standards: " + r.zone.base.toFixed(2) + " Hz base, " + r.zone.step.toFixed(2) +
-        " Hz separation, " + r.zone.pollingMs + " ms polling / " + r.zone.pulseMs + " ms pulse, " +
-        r.zone.bits + " banks");
-      console.log("  phase: t0 = " + r.phase.t0.toFixed(4) + " s (" +
-        (r.phase.epochOffset * 1000).toFixed(1) + " ms into our own slot lattice)");
-      console.log("  levels: bookend bars " + r.levels.strong.toFixed(1) +
-        ", strong cells " + (r.levels.strongCells !== undefined && r.levels.strongCells !== null
-          ? r.levels.strongCells.toFixed(1) : "-") +
-        ", weak cells " + r.levels.weak.toFixed(1) +
-        " (0..255 energy; cells outshine bars by design - 1 tone vs 8)");
-      for (var b = 0; b < r.bars.length; b++) {
-        console.log("  " + r.bars[b].kind + " bar @ poll " + r.bars[b].slot + ": confidence " +
-          (r.bars[b].confidence * 100).toFixed(1) + "%, level " + r.bars[b].level.toFixed(1));
-      }
-      for (var t = 0; t < r.targets.length; t++) {
-        var tg = r.targets[t];
-        console.log("  " + tg.name + ": hit floor " + tg.hitFloor.toFixed(1) + "% / noise ceiling " +
-          tg.noiseCeiling.toFixed(1) + "% -> margin " + tg.margin.toFixed(1) +
-          ", recommended " + tg.recommended.toFixed(1) + "%" +
-          (tg.crossLevel !== undefined && tg.crossLevel !== null
-            ? " (cross-level score " + tg.crossLevel.toFixed(1) + "%)" : ""));
-      }
-      if (r.bracket) {
-        console.log("  bracket: top " + r.bracket.top.toFixed(2) + " (clean walk, no decoys) / bottom " +
-          (r.bracket.bottomReached ? r.bracket.bottom.toFixed(2) + " (both decoys bite)" : "not reached by 0.50"));
-        var line = [];
-        for (var pn = 0; pn < CAL_LEVEL_NAMES.length; pn++) {
-          line.push(CAL_LEVEL_NAMES[pn][1] + " " + r.bracket.presets[CAL_LEVEL_NAMES[pn][0]].toFixed(2));
-        }
-        console.log("  precision presets: " + line.join(" / "));
-      }
-      console.log("  full report:", r);
-    }
-
-    // Everything a successful calibration commits - the ARMED state. (The
-    // engine already re-anchored the zone's grid at t0; this applies the
-    // lab-side half.) Also the seam automated verification drives.
-    function calApply(report) {
-      // 1) The lab's lattice rides the calibrated phase: scans, previews, and
-      //    captures now agree with the device we heard.
-      txAnchor = report.phase.t0;
-      // 2) Graph scaling: white point = the measured strong reference.
-      $("xp-high").value = Math.round(report.levels.strong);
-      $("xp-high").onchange();
-      // 3) Enroll the self-primed prints as distinguished entries: the
-      //    position-independent single (strong + weak generics, singleness
-      //    rule) and the whole-staircase sequence confirmations.
-      var s1 = calTargetByName(report, "single (strong)"), s2 = calTargetByName(report, "single (weak)");
-      var q1 = calTargetByName(report, "staircase (strong)"), q2 = calTargetByName(report, "staircase (weak)");
-      calEnroll("Calibrated single", "#e08a2e",
-        [report.prints.singleStrong, report.prints.singleWeak],
-        Math.min(s1.recommended, s2.recommended), true);
-      calEnroll("Calibrated staircase", "#7a3fd4",
-        [report.prints.staircaseStrong, report.prints.staircaseWeak],
-        Math.min(q1.recommended, q2.recommended), false);
-      dtRender();
-      // 4) The bracket becomes the player's precision dial.
-      if (report.bracket) {
-        calBracket = report.bracket;
-        calLevelsPopulate(report.bracket.presets);
-      }
-      // 5) The numbers, in full, where they can be copied out.
-      calReport(report);
-      calState = "calibrated";
-      calButtonSync();
-      var br = report.bracket;
-      var bracketText = br
-        ? " - top " + br.top.toFixed(2) + " / bottom " +
-          (br.bottomReached ? br.bottom.toFixed(2) : "<0.25")
-        : "";
-      if (br && br.belowTrust) {
-        // Below the trust line: still armed (testing-friendly), but LOUD.
-        console.warn("AudioPulse: calibration TOP is " + br.top.toFixed(2) +
-          " - BELOW the 0.50 trust line. Armed anyway; treat detections with suspicion.");
-        calStatus("calibrated at LOW confidence" + bracketText +
-          " - below the 0.50 trust line - armed (report in console)");
-        toast("Calibration armed at LOW confidence (top " + br.top.toFixed(2) +
-          " < 0.50 trust line).", "bad");
-      } else {
-        calStatus("calibrated" + bracketText + " - armed (report in console)", true);
-        toast("Calibration complete - armed. Report in the console (F12).", "ok");
-      }
-    }
-
-    // Calibration is PULSES ONLY for now: the loud solid full-band pre-roll (the
-    // "noise bar") is dropped - it was the main multi-zone clipping risk - so the
-    // pass is just the swept bookends + staircases. Use "Calibrate levels" to set
-    // the display black/white across the whole stream. BOOKEND_SWEEP renders the
-    // "all" bookends as a per-poll 3-bank sweep (opener up, closer down) instead
-    // of one solid bar; transmit-only, detection is untouched. Flip to false for
-    // plain solid bookends.
-    var BOOKEND_SWEEP = true;
-
-    // Start System Calibration fires the pass on EVERY active zone at once, so
-    // all zones can be watched together on the wide stream. One shared start slot
-    // syncs them; the peak-safe "Cal level scale" (~1/N) keeps the N simultaneous
-    // passes from summing into clipping. Detect Calibration still reads zone 1.
+    // Start System Calibration fires the EDITABLE pattern (the textbox) on EVERY
+    // active zone at once, so all zones can be watched together on the wide
+    // stream. It splits the pattern at noisecancel steps: each tone/pulse/silence
+    // run is scheduled on a shared start slot (peak-safe "Cal level scale" keeps
+    // the N simultaneous passes from clipping), and each noisecancel runs a
+    // real-time whole-graph noise capture in between. Detect Barcode reads it back.
     $("cal-start").onclick = function () {
       if (!xNet || !zone || !zones.length || calFiring) return;
+      var parsed = xNet.calibrate.parsePattern($("cal-pattern").value, zone.bits);
+      if (parsed.errors.length) {
+        var e0 = parsed.errors[0];
+        calStatus('<b class="bad">line ' + e0.line + ': ' + e0.msg + '</b>');
+        toast("Pattern error on line " + e0.line, "bad");
+        return;
+      }
+      if (!parsed.steps.length) { calStatus("nothing to fire - the pattern is empty"); return; }
+      // Split into ordered segments at noisecancel boundaries.
+      var segments = [], buf = [];
+      parsed.steps.forEach(function (s) {
+        if (s.kind === "noise") {
+          if (buf.length) { segments.push({ type: "emit", steps: buf }); buf = []; }
+          segments.push({ type: "noise", ms: Math.max(50, Math.min(10000, s.ms)) });
+        } else buf.push(s);
+      });
+      if (buf.length) segments.push({ type: "emit", steps: buf });
+
       calFiring = true;
       $("cal-start").disabled = true;
+      $("cal-barcode").disabled = true;
       var scale = readSettings().calScale; // peak-safe ~1/N, editable in the field
       var N = zones.length;
-      try {
-        // A shared start slot >= every zone's next-free slot, so all passes begin
-        // on the SAME slot (all zones share txEpoch + the 200 ms cadence).
-        var commonAt = 0;
-        for (var zi = 0; zi < N; zi++) {
-          commonAt = Math.max(commonAt, xNet.calibrate.nextTxSlot(zones[zi].id));
+      var finish = function (msg, good) {
+        calFiring = false;
+        $("cal-start").disabled = !xNet;
+        $("cal-barcode").disabled = !xNet;
+        calStatus(msg, good);
+      };
+      var segIdx = 0;
+      function runSeg() {
+        if (segIdx >= segments.length) { finish("calibration pattern complete", true); return; }
+        var seg = segments[segIdx++];
+        var tag = "(" + segIdx + "/" + segments.length + ")";
+        if (seg.type === "noise") {
+          calStatus("noise cancel " + seg.ms + " ms " + tag + "...");
+          var p;
+          try { p = xNet.noise.captureDisplay(seg.ms); }
+          catch (err) { oops(err); finish("noise cancel failed", false); return; }
+          p.then(runSeg).catch(function (err) { oops(err); finish("noise cancel failed", false); });
+          return;
         }
-        var passSec = (30 * zone.slotSec).toFixed(1);
-        calStatus("firing calibration on " + N + (N === 1 ? " zone" : " zones") +
-          " at " + scale.toFixed(2) + "x (" + passSec + " s)...");
-        var done = 0, ok = 0, failed = 0;
-        var settle = function () {
-          if (done < N) return; // wait for the whole batch (success or failure)
-          calFiring = false;
-          $("cal-start").disabled = !xNet;
-          if (failed === 0) calStatus(ok + "/" + N + " passes complete", true);
-          else calStatus(ok + "/" + N + " complete, " + failed + " failed", ok > 0);
+        // Emit run: fire the tone/pulse/silence steps on all zones at a shared slot.
+        calStatus("firing " + seg.steps.length + " polls on " + N + (N === 1 ? " zone" : " zones") +
+          " at " + scale.toFixed(2) + "x " + tag + "...");
+        var commonAt = 0;
+        try {
+          for (var zi = 0; zi < N; zi++) commonAt = Math.max(commonAt, xNet.calibrate.nextTxSlot(zones[zi].id));
+        } catch (err) { oops(err); finish("firing failed", false); return; }
+        var done = 0, failed = 0;
+        var afterEmit = function () {
+          if (done < N) return;
+          if (failed) { finish("firing failed on " + failed + " zone" + (failed === 1 ? "" : "s"), false); return; }
+          runSeg();
         };
         for (var z = 0; z < N; z++) {
           (function (id) {
-            var p;
-            try {
-              p = xNet.calibrate.transmitPass(id, { at: commonAt, levelScale: scale, bookendSweep: BOOKEND_SWEEP });
-            } catch (err) { done++; failed++; oops(err); settle(); return; }
-            p.then(function () { done++; ok++; settle(); })
-             .catch(function (err) { done++; failed++; oops(err); settle(); });
+            var pr;
+            try { pr = xNet.calibrate.transmitCustom(id, seg.steps, { at: commonAt, levelScale: scale }); }
+            catch (err) { done++; failed++; oops(err); afterEmit(); return; }
+            pr.then(function () { done++; afterEmit(); })
+              .catch(function (err) { done++; failed++; oops(err); afterEmit(); });
           })(zones[z].id);
         }
-      } catch (err) {
-        calFiring = false;
-        $("cal-start").disabled = !xNet;
-        calStatus("idle");
-        oops(err);
       }
+      runSeg();
     };
 
-    $("cal-simple").onclick = function () {
-      if (!xNet || !zone) return;
-      var res;
-      try { res = xNet.calibrate.simpleDetect("x"); }
-      catch (err) { oops(err); return; }
-      var n = res.hits.length;
-      console.log("AudioPulse Simple Detection: global high " + res.high + " (hit > " +
-        res.threshold.toFixed(0) + "), " + res.frames + " frames of the last " + res.windowSec +
-        "s scanned - " + n + " all-8 bar" + (n === 1 ? "" : "s") + " found:");
-      res.hits.forEach(function (h, i) {
-        console.log("    #" + (i + 1) + " @" + h.tStart.toFixed(2) + "s  " + h.polls.toFixed(2) +
-          " polls  banks " + h.meanBank.toFixed(2) + " solid / lanes " + h.meanLane.toFixed(2) + " filled");
-      });
-      if (n === 0) {
-        calStatus("Simple Detection: no all-8 bars in the last " + res.windowSec + "s (details in console)");
-        toast("No all-8 bars found", "bad");
-      } else {
-        var times = res.hits.map(function (h) { return h.tStart.toFixed(1) + "s"; }).join(", ");
-        calStatus("Simple Detection: " + n + " all-8 bar" + (n === 1 ? "" : "s") +
-          " found (" + times + ") - details in console", true);
-        toast(n + " all-8 bar" + (n === 1 ? "" : "s") + " detected", "ok");
-      }
-    };
-
-    // Fingerprint-free barcode auto-detect on zone 1: phase + cadence + weakness
-    // + grid re-anchor. The fill-grid Detect Calibration (arming) is untouched.
+    // Detect Barcode: run the per-zone Barcode Reader scan on the frozen
+    // snapshot (same action as the Reader's "Scan frozen 60 s"). Reads the mask +
+    // sensitivity gates set in the Barcode Reader card; results/overlays land there.
     $("cal-barcode").onclick = function () {
-      if (!xNet || !zone) return;
-      var rep;
-      try { rep = xNet.calibrate.autoBarcode("x"); }
-      catch (err) { oops(err); return; }
-      console.log("AudioPulse barcode auto-detect:", rep);
-      if (rep.phaseT === null) {
-        $("cal-barcode-status").innerHTML = '<b class="bad">no opener found</b>';
-        $("cal-weakness").textContent = "—";
-        toast("Barcode: no bookend opener found", "bad");
+      if (!xNet) return;
+      if (!paused) {
+        calStatus("pause the stream first - Detect Barcode reads the frozen snapshot");
+        toast("Pause the stream, then Detect Barcode", "bad");
         return;
       }
-      var cad = rep.cadence;
-      var full = rep.detected ? '<b class="ok">' : '<b class="bad">';
-      $("cal-barcode-status").innerHTML = full + rep.tier + '</b> ' +
-        (rep.confidence * 100).toFixed(0) + '% - phase ' + rep.phaseT.toFixed(3) + ' s, cadence ' +
-        (cad.observedSlotSec * 1000).toFixed(0) + ' ms ' + (cad.ok ? "✓" : "⚠ drift " +
-        (cad.driftFrac * 100).toFixed(0) + "%") + (rep.anchored ? " - grid re-anchored" : "") +
-        (rep.detected ? "" : " (partial: steps " + rep.missing.join(",") + " missing)");
-      // Per-bank weakness bars: 1 = strongest, lower = weaker on this setup.
-      $("cal-weakness").innerHTML = rep.weakness.map(function (w, i) {
-        var pct = Math.round(w * 100), col = w >= 0.75 ? "var(--ok)" : (w >= 0.4 ? "#e0b93a" : "var(--bad)");
-        return '<span title="b' + (i + 1) + ' ' + pct + '%" style="color:' + col + '">b' + (i + 1) + ':' + pct + '</span>';
-      }).join(" ");
-      toast("Barcode detected (" + rep.tier + ", " + (rep.confidence * 100).toFixed(0) + "%)", "ok");
-    };
-
-    $("cal-detect").onclick = function () {
-      if (!xNet || !zone) return;
-      if (calState === "calibrated") {
-        // Clear Calibration: wipe the armed state + the self-primed entries
-        // so the whole run can be done again.
-        dtEntries = dtEntries.filter(function (e) { return !e.calibrated; });
-        dtRender();
-        calState = "idle";
-        calButtonSync();
-        calLevelsReset();
-        calStatus("calibration cleared - ready");
-        return;
-      }
-      // One press: scan the backlog, walk 1.00 -> 0.25, bracket the room.
-      var result;
-      try { result = xNet.calibrate.detect("x"); }
-      catch (err) { oops(err); return; }
-      calDiagnosticsTable(result.diagnostics);
-      if (!result.detected) {
-        calStatus("no calibration pattern in the backlog (walked 1.00 down to 0.25) - details in console");
-        return;
-      }
-      if (!result.report) {
-        calStatus("pass found but the harvest failed: " + result.harvestError);
-        console.log("AudioPulse detect: harvest error -", result.harvestError, result);
-        return;
-      }
-      calApply(result.report);
+      var total = runReaderScan();
+      if (total < 0) { calStatus('<b class="bad">could not scan - see the Barcode Reader</b>'); return; }
+      calStatus(total + " stack" + (total === 1 ? "" : "s") + " across zones - see Barcode Reader", total > 0);
     };
 
     // The diagnostics, human-readable - one line per block the fill grid saw,
@@ -7685,87 +6973,6 @@ table.doc th { color: var(--muted); font-weight: 600; font-size: 12px; text-tran
         return false;
       },
       calStatus: function () { return $("cal-status").textContent; },
-      simpleDetect: function () {
-        if (!xNet || !zone) return null;
-        var r = xNet.calibrate.simpleDetect("x");
-        return { high: r.high, threshold: r.threshold, frames: r.frames, windowSec: r.windowSec,
-          hits: r.hits.map(function (h) {
-            return { tStart: h.tStart, polls: h.polls, meanBank: h.meanBank, meanLane: h.meanLane };
-          }) };
-      },
-      calLevelState: function () {
-        var sel = $("cal-level");
-        return { enabled: !sel.disabled, selected: sel.value, options: sel.options.length };
-      },
-      // The whole calibration thesis loop with zero audio hardware: a fresh
-      // headless net on the LIVE zone's exact standards, a synthetic pass
-      // (decoys included) fed through the real receive path, the real
-      // detect() walk-down - then a FRESH single on an untrained bank judged
-      // by the harvested generic at its recommended threshold.
-      calSyntheticRun: function () {
-        if (!zone) return null;
-        var I = AudioPulse.internals;
-        var sr = zone.bins.binHz * I.DEFAULTS.fftSize; // the live rate, recovered
-        var net2 = AudioPulse.create({ sampleRate: sr, logSeconds: 20 });
-        net2.zones.add("x", { base: zone.base, step: zone.step, bits: zone.bits,
-          pollingMs: zone.pollingMs, pulseMs: zone.pulseMs });
-        var z2 = net2.zones.get("x");
-        net2._test.grid("x");
-        var plan = I.expandCalScript(I.CAL_SCRIPT, z2);
-        var slot = z2.slotSec, t0 = 1.03;
-        var centers = [], gapCenters = [];
-        for (var p = 0; p < z2.bits; p++) {
-          centers.push(Math.round(z2.freqs[p] / z2.bins.binHz) - z2.bins.binLo);
-          if (p < z2.bits - 1) {
-            gapCenters.push(Math.round((z2.freqs[p] + z2.step / 2) / z2.bins.binHz) - z2.bins.binLo);
-          }
-        }
-        var fi = 0;
-        for (var t = t0 - 0.4; t <= t0 + (plan.polls + 3) * slot; t += 0.01) {
-          var bins = new Uint8Array(z2.bins.count);
-          for (var e = 0; e < plan.emissions.length; e++) {
-            var em = plan.emissions[e];
-            var start = t0 + em.slot * slot;
-            var dur = em.kind === "bar" ? em.polls * slot : z2.pulseSec;
-            if (t < start - 1e-9 || t >= start + dur - 1e-9) continue;
-            var level = em.level === 1 ? 200 : 120;
-            if (em.kind === "bar") {
-              for (var bi = em.banks[0] - 1; bi <= em.banks[1] - 1; bi++) bins[centers[bi]] = level;
-              if (em.decoy) {
-                // The hiss flickers around the lane threshold, like real noise.
-                var hiss = (fi % 2) ? 124 : 76;
-                for (var gi = 0; gi < gapCenters.length; gi++) bins[gapCenters[gi]] = hiss;
-              }
-            } else {
-              var idxs = I.bitsToIndexes(em.bits, z2.bits);
-              for (var xi = 0; xi < idxs.length; xi++) bins[centers[idxs[xi]]] = level;
-            }
-          }
-          net2._test.feedFrame("x", t, bins);
-          fi++;
-        }
-        var result = net2.calibrate.detect("x");
-        if (!result.detected || !result.report) {
-          return { detected: result.detected, report: null, fresh: null,
-                   diagnostics: result.diagnostics, harvestError: result.harvestError || null };
-        }
-        // Off to the races: bank 4 was never in the staircase - the generic
-        // must still recognize a lone hit there, and ONLY there.
-        var tSingle = t0 + 44 * slot;
-        for (var t2 = t0 + 42 * slot; t2 <= t0 + 46 * slot; t2 += 0.01) {
-          var bins2 = new Uint8Array(z2.bins.count);
-          if (t2 >= tSingle - 1e-9 && t2 < tSingle + z2.pulseSec - 1e-9) bins2[centers[3]] = 200;
-          net2._test.feedFrame("x", t2, bins2);
-        }
-        var rec = Math.min(
-          result.report.targets[0].recommended, result.report.targets[1].recommended);
-        var fresh = net2.calibrate.judgeSingle("x", {
-          at: tSingle, print: result.report.prints.singleStrong, threshold: rec });
-        return { detected: true, bracket: result.bracket, report: result.report,
-                 fresh: fresh, recommended: rec };
-      },
-      // Apply a report through the REAL armed path (toast, levels, enrollment).
-      calApply: function (report) { calApply(report); return true; },
       settings: readSettings
     };
   })();
